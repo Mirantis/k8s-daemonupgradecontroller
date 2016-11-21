@@ -1,0 +1,13 @@
+daemonupgradecontroller:
+  hostname: daemonupgradecontroller
+  image: mirantis/k8s-daemonupgradecontroller
+  entrypoint:
+  - /bin/bash
+  - "-ceu"
+  - >
+    daemonupgradecontroller
+    --address=$$(resolveip.sh daemonupgradecontroller)
+    --master=http://dind_apiserver_1:8888
+    --v=4
+  external_links:
+  - dind_apiserver_1
