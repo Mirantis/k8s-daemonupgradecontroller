@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/Mirantis/k8s-daemonsetupgradecontroller.svg?branch=master)](https://travis-ci.org/Mirantis/k8s-daemonsetupgradecontroller)
 Daemon Set upgrade controller
 ============================
 
