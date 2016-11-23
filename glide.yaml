@@ -1,37 +1,43 @@
 package: github.com/Mirantis/k8s-daemonupgradecontroller
 import:
 - package: github.com/golang/glog
-- package: k8s.io/kubernetes
-  vcs: git
-  repo: git://github.com/kubernetes/kubernetes.git
-  versiion: master
-  subpackages:
-  - pkg/api
-  - pkg/client        
-  - pkg/controller/daemon
-- package: k8s.io/client-go
-  subpackages:
-  - kubernetes
-  - pkg/api
-  - pkg/runtime
-  - pkg/watch
-  - rest
-  - tools/cache
 - package: github.com/onsi/ginkgo
-  version: v1.2.0
+  version: ^1.2.0
 - package: github.com/onsi/gomega
-  version: v1.0
-- package: github.com/coreos/etcd
-  version: v3.1.0-rc.0
+  version: ^1.0.0
+- package: github.com/spf13/pflag
+- package: k8s.io/kubernetes
+  version: ^1.6.0-alpha.0
   subpackages:
-  - client
-- package: github.com/stretchr/testify
-  version: v1.1.4
-- package: github.com/pmezard/go-difflib
-  version: v1.0.0
-  subpackages:
-  - difflib
-- package: github.com/exponent-io/jsonpath
-- package: github.com/dgrijalva/jwt-go
-- package: github.com/howeyc/gopass
-- package: github.com/mitchellh/go-wordwrap
+  - cmd/kube-controller-manager/app/options
+  - pkg/api
+  - pkg/api/unversioned
+  - pkg/api/v1
+  - pkg/apis/extensions
+  - pkg/client/cache
+  - pkg/client/clientset_generated/internalclientset
+  - pkg/client/clientset_generated/internalclientset/typed/core/internalversion
+  - pkg/client/metrics/prometheus
+  - pkg/client/record
+  - pkg/client/restclient
+  - pkg/client/unversioned/clientcmd
+  - pkg/client/unversioned/remotecommand
+  - pkg/controller
+  - pkg/controller/informers
+  - pkg/healthz
+  - pkg/kubelet/server/remotecommand
+  - pkg/labels
+  - pkg/util/errors
+  - pkg/util/flag
+  - pkg/util/httpstream/spdy
+  - pkg/util/intstr
+  - pkg/util/labels
+  - pkg/util/logs
+  - pkg/util/metrics
+  - pkg/util/pod
+  - pkg/util/runtime
+  - pkg/util/wait
+  - pkg/util/workqueue
+  - pkg/util/workqueue/prometheus
+  - pkg/version/prometheus
+  - pkg/version/verflag
