@@ -41,12 +41,9 @@ import (
 )
 
 var (
-	simpleDaemonSetLabel  = map[string]string{"name": "simple-daemon", "type": "production"}
-	simpleDaemonSetLabel2 = map[string]string{"name": "simple-daemon", "type": "test"}
-	simpleNodeLabel       = map[string]string{"color": "blue", "speed": "fast"}
-	simpleNodeLabel2      = map[string]string{"color": "red", "speed": "fast"}
-	alwaysReady           = func() bool { return true }
-	maxUnavailable        = 2
+	simpleDaemonSetLabel = map[string]string{"name": "simple-daemon", "type": "production"}
+	alwaysReady          = func() bool { return true }
+	maxUnavailable       = 2
 )
 
 func getKey(ds *extensions.DaemonSet, t *testing.T) string {
@@ -60,8 +57,10 @@ func getKey(ds *extensions.DaemonSet, t *testing.T) string {
 
 func newDaemonSet(name string) *extensions.DaemonSet {
 	labels := map[string]string{}
+	selector := map[string]string{}
 	for key, value := range simpleDaemonSetLabel {
 		labels[key] = value
+		selector[key] = value
 	}
 	return &extensions.DaemonSet{
 		TypeMeta: unversioned.TypeMeta{APIVersion: testapi.Extensions.GroupVersion().String()},
@@ -71,7 +70,7 @@ func newDaemonSet(name string) *extensions.DaemonSet {
 			Annotations: map[string]string{},
 		},
 		Spec: extensions.DaemonSetSpec{
-			Selector: &unversioned.LabelSelector{MatchLabels: simpleDaemonSetLabel},
+			Selector: &unversioned.LabelSelector{MatchLabels: selector},
 			Template: api.PodTemplateSpec{
 				ObjectMeta: api.ObjectMeta{
 					Labels: labels,
@@ -114,37 +113,6 @@ func newNode(name string, label map[string]string) *api.Node {
 func addNodes(nodeStore cache.Store, startIndex, numNodes int, label map[string]string) {
 	for i := startIndex; i < startIndex+numNodes; i++ {
 		nodeStore.Add(newNode(fmt.Sprintf("node-%d", i), label))
-	}
-}
-
-func newPod(podName string, nodeName string, label map[string]string) *api.Pod {
-	pod := &api.Pod{
-		TypeMeta: unversioned.TypeMeta{APIVersion: testapi.Default.GroupVersion().String()},
-		ObjectMeta: api.ObjectMeta{
-			GenerateName: podName,
-			Labels:       label,
-			Namespace:    api.NamespaceDefault,
-		},
-		Spec: api.PodSpec{
-			NodeName: nodeName,
-			Containers: []api.Container{
-				{
-					Image: "foo/bar",
-					TerminationMessagePath: api.TerminationMessagePathDefault,
-					ImagePullPolicy:        api.PullIfNotPresent,
-					SecurityContext:        securitycontext.ValidSecurityContextWithContainerDefaults(),
-				},
-			},
-			DNSPolicy: api.DNSDefault,
-		},
-	}
-	api.GenerateName(api.SimpleNameGenerator, &pod.ObjectMeta)
-	return pod
-}
-
-func addPods(podStore cache.Store, nodeName string, label map[string]string, number int) {
-	for i := 0; i < number; i++ {
-		podStore.Add(newPod(fmt.Sprintf("%s-", nodeName), nodeName, label))
 	}
 }
 
@@ -288,11 +256,6 @@ func TestDaemonSetUpdatesPods(t *testing.T) {
 	podControl.CreatePodsOnNode("node-4", ds.Namespace, &ds.Spec.Template, ds)
 	syncAndValidateDaemonSets(t, manager, ds, podControl, 5, 0)
 
-	fmt.Printf("TERAZ %s, labels: %v\n", ds.Spec.Template.ObjectMeta.Labels[extensions.DefaultDaemonSetUniqueLabelKey], ds.Spec.Selector)
-	for _, daemonPod := range podControl.PodIDMap {
-		fmt.Printf("  Start hash: %s, labels: %v \n", daemonPod.ObjectMeta.Labels[extensions.DefaultDaemonSetUniqueLabelKey], daemonPod.ObjectMeta.Labels)
-	}
-
 	ds.Spec.Template.Spec.Containers[0].Image = "foo2/bar2"
 	ds.ObjectMeta.Annotations[daemonutil.DaemonStrategyTypeAnnotation] = "RollingUpdate"
 	ds.ObjectMeta.Annotations[daemonutil.DaemonMaxUnavailableAnnotation] = strconv.Itoa(maxUnavailable)
@@ -317,6 +280,11 @@ func TestDaemonSetPaused(t *testing.T) {
 	manager, podControl := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 5, nil)
 	ds := newDaemonSet("foo")
+	podControl.CreatePodsOnNode("node-0", ds.Namespace, &ds.Spec.Template, ds)
+	podControl.CreatePodsOnNode("node-1", ds.Namespace, &ds.Spec.Template, ds)
+	podControl.CreatePodsOnNode("node-2", ds.Namespace, &ds.Spec.Template, ds)
+	podControl.CreatePodsOnNode("node-3", ds.Namespace, &ds.Spec.Template, ds)
+	podControl.CreatePodsOnNode("node-4", ds.Namespace, &ds.Spec.Template, ds)
 	manager.dsStore.Add(ds)
 	syncAndValidateDaemonSets(t, manager, ds, podControl, 5, 0)
 
@@ -333,6 +301,11 @@ func TestDaemonNoopStrategy(t *testing.T) {
 	manager, podControl := newTestController()
 	addNodes(manager.nodeStore.Store, 0, 5, nil)
 	ds := newDaemonSet("foo")
+	podControl.CreatePodsOnNode("node-0", ds.Namespace, &ds.Spec.Template, ds)
+	podControl.CreatePodsOnNode("node-1", ds.Namespace, &ds.Spec.Template, ds)
+	podControl.CreatePodsOnNode("node-2", ds.Namespace, &ds.Spec.Template, ds)
+	podControl.CreatePodsOnNode("node-3", ds.Namespace, &ds.Spec.Template, ds)
+	podControl.CreatePodsOnNode("node-4", ds.Namespace, &ds.Spec.Template, ds)
 	manager.dsStore.Add(ds)
 	syncAndValidateDaemonSets(t, manager, ds, podControl, 5, 0)
 

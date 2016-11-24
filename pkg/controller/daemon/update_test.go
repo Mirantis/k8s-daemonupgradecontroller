@@ -17,34 +17,17 @@ limitations under the License.
 package daemonupgradecontroller
 
 import (
-	"fmt"
 	"testing"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/api/unversioned"
-	"k8s.io/kubernetes/pkg/apis/extensions"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/testing/core"
-	"k8s.io/kubernetes/pkg/runtime"
-	labelsutil "k8s.io/kubernetes/pkg/util/labels"
-	podutil "k8s.io/kubernetes/pkg/util/pod"
 )
 
 // DaemonSets not take any actions when being deleted
 func TestNeedsUpdate(t *testing.T) {
-	podSpec := resourcePodSpec("not-too-much-mem", "75M", "75m")
-	manager, podControl := newTestController()
-	node := newNode("not-too-much-mem", nil)
-	node.Status.Allocatable = allocatableResources("200M", "200m")
-	manager.nodeStore.Add(node)
-	manager.podStore.Indexer.Add(&api.Pod{
-		Spec: podSpec,
-	})
-	ds := newDaemonSet("foo")
-	ds.Spec.Template.Spec = podSpec
-	now := unversioned.Now()
-	ds.DeletionTimestamp = &now
-	manager.dsStore.Add(ds)
-	syncAndValidateDaemonSets(t, manager, ds, podControl, 0, 0)
+	manager, _ := newTestController()
+	ds := newDaemonSet("test")
+	_, needsUpdate := manager.needsUpdate(ds, []*api.Pod{}, 0, 0)
+	if needsUpdate != false {
+		t.Errorf("Unexcpected return value. Excpected false, got true")
+	}
 }
