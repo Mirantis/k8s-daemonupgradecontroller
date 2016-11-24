@@ -11,30 +11,94 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+IMAGE_REPO ?= mirantis/k8s-daemonupgradecontroller
+IMAGE_TAG ?= 0.1
 
-.PHONY: all docker
+BUILD_DIR = _output
+VENDOR_DIR = vendor
+ROOT_DIR = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-TAG ?= mirantis/k8s-daemonupgradecontroller
-builddir=_output
+ENV_PREPARE_MARKER = .env-prepare.complete
 
-all: build docker
 
-build:
-	if [ ! -d vendor ]; then $(MAKE) install-vendor; fi
-	go build -o $(builddir)/daemonupgradecontroller cmd/daemonupgradecontroller.go
+.PHONY: help
+help:
+	@echo "Usage: 'make <target>'"
+	@echo ""
+	@echo "Targets:"
+	@echo "help            - Print this message and exit"
+	@echo "get-deps        - Install project dependencies"
+	@echo "build           - Build daemonupgrade binary"
+	@echo "build-image     - Build docker image"
+	@echo "test            - Run all tests"
+	@echo "unit            - Run unit tests"
+	@echo "e2e             - Run e2e tests"
+	@echo "clean           - Delete binaries"
+	@echo "clean-all       - Delete binaries and vendor files"
 
-verify-glide-installation:
-	@which glide || go get github.com/Masterminds/glide
+.PHONY: get-deps
+get-deps: $(VENDOR_DIR)
 
-install-vendor: verify-glide-installation
+
+.PHONY: build
+build: $(BUILD_DIR)/daemonupgradecontroller
+
+
+.PHONY: build-image
+build-image: $(BUILD_DIR)/daemonupgradecontroller
+	docker build -t $(IMAGE_REPO):$(IMAGE_TAG) .
+	docker save $(IMAGE_REPO):$(IMAGE_TAG) > $(BUILD_DIR)/ipcontroller.tar
+
+
+.PHONY: unit
+unit:
+	go test -v ./pkg/...
+
+
+.PHONY: e2e
+e2e: $(BUILD_DIR)/e2e.test $(ENV_PREPARE_MARKER)
+	sudo $(BUILD_DIR)/e2e.test --master=http://localhost:8888 --testlink=docker0 -ginkgo.v
+
+
+.PHONY: test
+test: unit e2e
+
+
+.PHONY: clean
+clean:
+	rm -rf $(BUILD_DIR)
+
+
+.PHONY: clean-all
+clean-all: clean
+	rm -rf $(VENDOR_DIR)
+	docker rmi -f $(IMAGE_REPO):$(IMAGE_TAG)
+
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+
+$(BUILD_DIR)/daemonupgradecontroller: $(BUILD_DIR) $(VENDOR_DIR)
+	go build -o $(BUILD_DIR)/daemonupgradecontroller cmd/daemonupgradecontroller.go
+
+
+$(BUILD_DIR)/e2e.test: $(BUILD_DIR) $(VENDOR_DIR)
+	go test -v ./test/e2e/ --master=http://127.0.0.1:8888
+
+
+$(VENDOR_DIR):
+	go get github.com/Masterminds/glide
 	glide install --strip-vendor
 
-update-vendor: verify-glide-installation
-	glide update --strip-vendor
 
-docker:
-	docker build -t $(TAG) .
-
-clean:
-	rm -fr $(builddir)/*
-	docker rmi $(TAG) -f || /bin/true
+$(ENV_PREPARE_MARKER): build-image
+	./scripts/kube.sh
+	./scripts/dind.sh
+	docker cp $(BUILD_DIR)/ipcontroller.tar dind_node_1:/tmp
+	docker exec -ti dind_node_1 docker import /tmp/ipcontroller.tar $(IMAGE_REPO):$(IMAGE_TAG)
+	docker cp $(BUILD_DIR)/ipcontroller.tar dind_node_2:/tmp
+	docker exec -ti dind_node_2 docker import /tmp/ipcontroller.tar $(IMAGE_REPO):$(IMAGE_TAG)
+	docker cp $(BUILD_DIR)/ipcontroller.tar dind_node_3:/tmp
+	docker exec -ti dind_node_2 docker import /tmp/ipcontroller.tar $(IMAGE_REPO):$(IMAGE_TAG)
+	echo > $(ENV_PREPARE_MARKER)
