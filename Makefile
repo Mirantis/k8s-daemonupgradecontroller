@@ -51,7 +51,7 @@ build-image: $(BUILD_DIR)/daemonupgradecontroller
 
 
 .PHONY: unit
-unit:
+unit: $(VENDOR_DIR)
 	go test -v ./pkg/...
 
 
