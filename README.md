@@ -17,6 +17,11 @@ Build docker image
 make docker
 ```
 
+Usage
+=====
+
+[![asciicast](https://asciinema.org/a/94027.png)](https://asciinema.org/a/94027)
+
 How to run unit tests?
 ======================================
 Unit tests:
@@ -27,3 +32,4 @@ make unit
 How to run e2e tests?
 =====================
 TODO
+
