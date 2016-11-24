@@ -1,14 +1,12 @@
 sudo: required
 branches:
-    only:
-        - master
+  only:
+    - master
 language: go
 services:
-    - docker
+  - docker
 before_install:
   - sudo apt-get install -y git
-install:
-  - make get-deps
 script:
   - make build
   - make unit
