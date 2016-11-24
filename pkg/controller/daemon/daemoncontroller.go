@@ -386,7 +386,6 @@ func (dsc *DaemonUpgradeController) manage(ds *extensions.DaemonSet) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%v\n", daemonPods)
 	err = daemonutil.UpdatePodsTemplateHashLabel(dsc.kubeClient, ds, daemonPods, podTemplate)
 	if err != nil {
 		glog.Errorf("Couldn't update daemon set %s pods template hash label: %v", ds.Name, err)

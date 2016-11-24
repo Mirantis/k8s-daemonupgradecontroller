@@ -17,7 +17,6 @@ limitations under the License.
 package daemonupgradecontroller
 
 import (
-	"fmt"
 	"strconv"
 
 	daemonutil "github.com/Mirantis/k8s-daemonupgradecontroller/pkg/controller/daemon/util"
@@ -55,10 +54,8 @@ func (dsc *DaemonUpgradeController) needsRollingUpdate(ds *extensions.DaemonSet,
 
 	newPodTemplateSpecHash := podutil.GetPodTemplateSpecHash(template)
 	newPodTemplateSpecHashStr := strconv.FormatUint(uint64(newPodTemplateSpecHash), 10)
-	fmt.Printf("POD T HASH %+v\n", newPodTemplateSpecHashStr)
 	for _, daemonPod := range daemonPods {
 		curPodTemplateSpecHash, hashExists := daemonPod.ObjectMeta.Labels[extensions.DefaultDaemonSetUniqueLabelKey]
-		fmt.Printf("    POD HASH %+v\n", curPodTemplateSpecHash)
 		if hashExists && curPodTemplateSpecHash == newPodTemplateSpecHashStr {
 			podToRetain = daemonPod
 			needsUpdate = false
@@ -67,7 +64,6 @@ func (dsc *DaemonUpgradeController) needsRollingUpdate(ds *extensions.DaemonSet,
 		// special case
 		// label is not set yet
 		if !hashExists {
-			fmt.Printf("ups\n")
 			needsUpdate = false
 			break
 		}
