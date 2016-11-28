@@ -393,7 +393,7 @@ func (dsc *DaemonUpgradeController) manage(ds *extensions.DaemonSet) error {
 	}
 
 	var podsToDelete []string
-	numUnavailable := 0
+	numUnavailable := ds.Status.DesiredNumberScheduled - ds.Status.NumberReady
 	for _, node := range nodeList.Items {
 		daemonPods, isRunning := nodeToDaemonPods[node.Name]
 		if isRunning {
