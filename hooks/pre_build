@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -xe
+
+docker run --privileged -w /go/src/github.com/Mirantis/k8s-daemonupgradecontroller -v $(pwd):/go/src/github.com/Mirantis/k8s-daemonupgradecontroller golang:alpine sh -c "
+echo \"@community http://dl-cdn.alpinelinux.org/alpine/edge/community\" >> /etc/apk/repositories && \
+apk --no-cache add git glide@community && \
+apk --no-cache add mercurial glide@community && \
+glide install --strip-vendor && \
+go build -o _output/daemonupgradecontroller cmd/daemonupgradecontroller.go"
