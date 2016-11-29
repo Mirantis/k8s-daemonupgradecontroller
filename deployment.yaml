@@ -11,5 +11,5 @@ spec:
     spec:
       containers:
       - name: daemonupgrader
-        image: mirantis/k8s-daemonupgradecontroller:0.1
+        image: mirantis/k8s-daemonupgradecontroller:latest
         imagePullPolicy: IfNotPresent
