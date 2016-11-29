@@ -163,7 +163,37 @@ func NewDaemonUpgradeController(daemonSetInformer informers.DaemonSetInformer, p
 }
 
 func (dsc *DaemonUpgradeController) deleteDaemonset(obj interface{}) {
-	//TODO: delete pod templates?
+	ds, ok := obj.(*extensions.DaemonSet)
+	if !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			glog.Errorf("Couldn't get object from tombstone %#v", obj)
+			return
+		}
+		ds, ok = tombstone.Obj.(*extensions.DaemonSet)
+		if !ok {
+			glog.Errorf("Tombstone contained object that is not a damonset %#v", obj)
+			return
+		}
+	}
+	podTemplates, err := daemonutil.GetAllPodTemplates(ds, dsc.kubeClient)
+	if err != nil {
+		glog.Errorf("Couldn't get list of podTemplates: %v", err)
+	}
+	templatesCount := len(podTemplates.Items)
+	deleteWait := sync.WaitGroup{}
+	deleteWait.Add(templatesCount)
+	for i := 0; i < templatesCount; i++ {
+		go func(ix int) {
+			defer deleteWait.Done()
+			templateName := podTemplates.Items[ix].Name
+			if err := dsc.podTemplateController.DeletePodTemplate(ds.Namespace, templateName); err != nil {
+				glog.V(2).Infof("Failed to delete podTemplate %s for daemon set %q/%q", templateName, ds.Namespace, ds.Name)
+				utilruntime.HandleError(err)
+			}
+		}(i)
+	}
+	deleteWait.Wait()
 }
 
 // Run begins watching and syncing daemon sets.

@@ -224,6 +224,7 @@ func getSkippedAnnotations(annotations map[string]string) map[string]string {
 // TODO: Should I make it a real controller?
 type PodTemplateControllerInterface interface {
 	CreatePodTemplate(podTemplate *api.PodTemplate, namespace string) (*api.PodTemplate, error)
+	DeletePodTemplate(namespace string, podTemplateID string) error
 }
 
 type PodTemplateController struct {
@@ -232,4 +233,9 @@ type PodTemplateController struct {
 
 func (ptc *PodTemplateController) CreatePodTemplate(podTemplate *api.PodTemplate, namespace string) (*api.PodTemplate, error) {
 	return ptc.KubeClient.Core().PodTemplates(namespace).Create(podTemplate)
+}
+
+func (ptc *PodTemplateController) DeletePodTemplate(namespace string, podTemplateID string) error {
+	options := api.DeleteOptions{}
+	return ptc.KubeClient.Core().PodTemplates(namespace).Delete(podTemplateID, &options)
 }
