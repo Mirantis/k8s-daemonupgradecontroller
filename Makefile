@@ -16,9 +16,6 @@ IMAGE_TAG ?= 0.1
 
 BUILD_DIR = _output
 VENDOR_DIR = vendor
-ROOT_DIR = $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
-
-ENV_PREPARE_MARKER = .env-prepare.complete
 
 
 .PHONY: help
@@ -56,8 +53,8 @@ unit: $(VENDOR_DIR)
 
 
 .PHONY: e2e
-e2e: $(BUILD_DIR)/e2e.test $(ENV_PREPARE_MARKER)
-	sudo $(BUILD_DIR)/e2e.test --master=http://localhost:8888 --testlink=docker0 -ginkgo.v
+e2e: $(VENDOR_DIR)
+	go test -v ./test/e2e/ --master=http://127.0.0.1:8888
 
 
 .PHONY: test
@@ -83,22 +80,6 @@ $(BUILD_DIR)/daemonupgradecontroller: $(BUILD_DIR) $(VENDOR_DIR)
 	go build -o $(BUILD_DIR)/daemonupgradecontroller cmd/daemonupgradecontroller.go
 
 
-$(BUILD_DIR)/e2e.test: $(BUILD_DIR) $(VENDOR_DIR)
-	go test -v ./test/e2e/ --master=http://127.0.0.1:8888
-
-
 $(VENDOR_DIR):
 	go get github.com/Masterminds/glide
 	glide install --strip-vendor
-
-
-$(ENV_PREPARE_MARKER): build-image
-	./scripts/kube.sh
-	./scripts/dind.sh
-	docker cp $(BUILD_DIR)/ipcontroller.tar dind_node_1:/tmp
-	docker exec -ti dind_node_1 docker import /tmp/ipcontroller.tar $(IMAGE_REPO):$(IMAGE_TAG)
-	docker cp $(BUILD_DIR)/ipcontroller.tar dind_node_2:/tmp
-	docker exec -ti dind_node_2 docker import /tmp/ipcontroller.tar $(IMAGE_REPO):$(IMAGE_TAG)
-	docker cp $(BUILD_DIR)/ipcontroller.tar dind_node_3:/tmp
-	docker exec -ti dind_node_2 docker import /tmp/ipcontroller.tar $(IMAGE_REPO):$(IMAGE_TAG)
-	echo > $(ENV_PREPARE_MARKER)
