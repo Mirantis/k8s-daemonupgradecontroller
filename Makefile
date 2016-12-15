@@ -77,7 +77,7 @@ $(BUILD_DIR):
 
 
 $(BUILD_DIR)/daemonupgradecontroller: $(BUILD_DIR) $(VENDOR_DIR)
-	go build -o $(BUILD_DIR)/daemonupgradecontroller cmd/daemonupgradecontroller.go
+	CGO_ENABLED=0 go build -o $(BUILD_DIR)/daemonupgradecontroller cmd/daemonupgradecontroller.go
 
 
 $(VENDOR_DIR):
