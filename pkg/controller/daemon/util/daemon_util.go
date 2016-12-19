@@ -60,33 +60,24 @@ type podTemplateListFunc func(string, api.ListOptions) (*api.PodTemplateList, er
 func GetOrCreatePodTemplate(ptc PodTemplateControllerInterface, ds *extensions.DaemonSet, c clientset.Interface) (*api.PodTemplate, error) {
 	var podTemplate *api.PodTemplate
 
-	podsTemplates, err := ListPodTemplates(ds, c)
+	podTemplates, err := ListPodTemplates(ds, c)
 	if err != nil {
 		return nil, err
 	}
-	if len(podsTemplates.Items) == 0 {
+	if len(podTemplates.Items) == 0 {
 		podTemplate, err = CreatePodTemplateFromDS(ptc, ds, "1")
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		// make ds.Spec.Template copy without extensions.DefaultDaemonSetUniqueLabelKey label
-		obj, _ := api.Scheme.DeepCopy(ds.Spec.Template)
-		template := obj.(api.PodTemplateSpec)
-		template.ObjectMeta.Labels = labelsutil.CloneAndRemoveLabel(
-			ds.Spec.Template.ObjectMeta.Labels,
-			extensions.DefaultDaemonSetUniqueLabelKey,
-		)
-
-		daemonTemplateHash := podutil.GetPodTemplateSpecHash(template)
-		daemonTemplateHashStr := strconv.FormatUint(uint64(daemonTemplateHash), 10)
-		for _, podTmpl := range podsTemplates.Items {
-			podTemplateSpecHash, hashExists := podTmpl.ObjectMeta.Labels[extensions.DefaultDaemonSetUniqueLabelKey]
-			if hashExists && daemonTemplateHashStr == podTemplateSpecHash {
-				return &podTmpl, nil
-			}
+		podTmpl, err := getNewPodTemplate(ds, podTemplates)
+		if err != nil {
+			return nil, err
 		}
-		revision := MaxRevision(podsTemplates)
+		if podTmpl != nil {
+			return podTmpl, nil
+		}
+		revision := MaxRevision(podTemplates)
 		newRevision := strconv.FormatInt(revision+1, 10)
 		podTemplate, err = CreatePodTemplateFromDS(ptc, ds, newRevision)
 		if err != nil {
@@ -219,6 +210,61 @@ func getSkippedAnnotations(annotations map[string]string) map[string]string {
 		}
 	}
 	return skippedAnnotations
+}
+
+func getNewPodTemplate(ds *extensions.DaemonSet, podTemplates *api.PodTemplateList) (*api.PodTemplate, error) {
+	newDSTemplate := getNewDaemonSetTemplate(ds)
+	for _, podTemplate := range podTemplates.Items {
+		equal, err := equalIgnoreHash(podTemplate.Template, newDSTemplate)
+		if err != nil {
+			return nil, err
+		}
+		if equal {
+			return &podTemplate, nil
+		}
+	}
+	return nil, nil
+}
+
+func getNewDaemonSetTemplate(ds *extensions.DaemonSet) api.PodTemplateSpec {
+	newDaemonSetTemplate := api.PodTemplateSpec{
+		ObjectMeta: ds.Spec.Template.ObjectMeta,
+		Spec:       ds.Spec.Template.Spec,
+	}
+	newDaemonSetTemplate.ObjectMeta.Labels = labelsutil.CloneAndAddLabel(
+		ds.Spec.Template.ObjectMeta.Labels,
+		extensions.DefaultDaemonSetUniqueLabelKey,
+		podutil.GetPodTemplateSpecHash(newDaemonSetTemplate))
+	return newDaemonSetTemplate
+}
+
+// This is a copy of https://github.com/kubernetes/kubernetes/blob/master/pkg/controller/deployment/util/deployment_util.go#L594
+// equalIgnoreHash returns true if two given podTemplateSpec are equal, ignoring the diff in value of Labels[pod-template-hash]
+// We ignore pod-template-hash because the hash result would be different upon podTemplateSpec API changes
+// (e.g. the addition of a new field will cause the hash code to change)
+// Note that we assume input podTemplateSpecs contain non-empty labels
+func equalIgnoreHash(template1, template2 api.PodTemplateSpec) (bool, error) {
+	// First, compare template.Labels (ignoring hash)
+	labels1, labels2 := template1.Labels, template2.Labels
+	// The podTemplateSpec must have a non-empty label so that label selectors can find them.
+	// This is checked by validation (of resources contain a podTemplateSpec).
+	if len(labels1) == 0 || len(labels2) == 0 {
+		return false, fmt.Errorf("Unexpected empty labels found in given template")
+	}
+	if len(labels1) > len(labels2) {
+		labels1, labels2 = labels2, labels1
+	}
+	// We make sure len(labels2) >= len(labels1)
+	for k, v := range labels2 {
+		if labels1[k] != v && k != extensions.DefaultDaemonSetUniqueLabelKey {
+			return false, nil
+		}
+	}
+
+	// Then, compare the templates without comparing their labels
+	template1.Labels, template2.Labels = nil, nil
+	result := api.Semantic.DeepEqual(template1, template2)
+	return result, nil
 }
 
 // TODO: Should I make it a real controller?
