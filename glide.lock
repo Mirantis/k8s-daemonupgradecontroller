@@ -1,5 +1,5 @@
-hash: 04614b891f98de29e255de63fb9db1bdea278cc8c8e9d530419b929f6976953c
-updated: 2016-11-24T00:36:43.092413013+01:00
+hash: efdc129b80c4cb7d4a72519790100e9ffbbe0beeca590285739e8e3815bbf56d
+updated: 2017-01-03T20:22:08.494916367+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -217,7 +217,7 @@ imports:
 - name: github.com/Sirupsen/logrus
   version: 51fe59aca108dc5680109e7b2051cbdcfa5a253c
 - name: github.com/spf13/pflag
-  version: 1560c1005499d61b80f865c04d39ca7505bf7f0b
+  version: 5ccb023bc27df288a957c5e994cd44fd19619465
 - name: github.com/ugorji/go
   version: f1f1a805ed361a0e078bb537e4ea78cd37dcf065
   subpackages:
@@ -289,7 +289,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 - name: k8s.io/kubernetes
-  version: 42fe4ab0270e44c750d77c682e2fcab394aeb392
+  version: 82450d03cb057bab0950214ef122b67c83fb11df
   subpackages:
   - cmd/kube-controller-manager/app/options
   - cmd/kubeadm/app/apis/kubeadm
@@ -384,6 +384,7 @@ imports:
   - pkg/client/clientset_generated/internalclientset/typed/storage/internalversion/fake
   - pkg/client/leaderelection
   - pkg/client/leaderelection/resourcelock
+  - pkg/client/listers/batch/internalversion
   - pkg/client/listers/core/internalversion
   - pkg/client/metrics
   - pkg/client/metrics/prometheus
@@ -443,6 +444,7 @@ imports:
   - pkg/util/interrupt
   - pkg/util/intstr
   - pkg/util/json
+  - pkg/util/jsonpath
   - pkg/util/labels
   - pkg/util/logs
   - pkg/util/metrics
@@ -474,4 +476,5 @@ imports:
   - third_party/forked/golang/json
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
+  - third_party/forked/golang/template
 testImports: []
