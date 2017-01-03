@@ -7,7 +7,7 @@ import:
   version: ^1.0.0
 - package: github.com/spf13/pflag
 - package: k8s.io/kubernetes
-  version: ^1.6.0-alpha.0
+  version: v1.5.1
   subpackages:
   - cmd/kube-controller-manager/app/options
   - pkg/api
