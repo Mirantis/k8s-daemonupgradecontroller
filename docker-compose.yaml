@@ -1,8 +1,0 @@
-daemonupgradecontroller:
-  hostname: daemonupgradecontroller
-  image: mirantis/k8s-daemonupgradecontroller
-  command:
-  - --master=http://dind_apiserver_1:8888
-  - --v=4
-  external_links:
-  - dind_apiserver_1
